@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RepAi</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+}
+#ai-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 360px;
+  max-height: 500px;
+  background: #111827;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+#ai-header {
+  background: #2563eb;
+  color: white;
+  padding: 15px;
+  font-weight: bold;
+  text-align: center;
+}
+#ai-messages {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  color: white;
+}
+.message {
+  margin: 8px 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  max-width: 80%;
+}
+.message.user { background: #3b82f6; align-self: flex-end; }
+.message.ai { background: #1f2937; align-self: flex-start; }
+#ai-input {
+  display: flex;
+  border-top: 1px solid #333;
+}
+#ai-input input {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  outline: none;
+  border-radius: 0;
+}
+#ai-input button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<div id="ai-widget">
+  <div id="ai-header">AI Receptionist</div>
+  <div id="ai-messages"></div>
+  <div id="ai-input">
+    <input type="text" id="user-input" placeholder="Ask me anything..." />
+    <button id="send-btn">Send</button>
+  </div>
+</div>
+
+<script>
+const messagesEl = document.getElementById("ai-messages");
+const inputEl = document.getElementById("user-input");
+const sendBtn = document.getElementById("send-btn");
+
+let memory = {topic:null, urgency:0, budget:0, stage:0};
+
+// Word banks for dynamic AI generation
+const verbs = ["process","evaluate","review","analyze","assess","consider"];
+const connectors = ["regarding","about","concerning","related to"];
+const nouns = ["request","issue","service","project","situation"];
+const tones = ["I see","Understood","Noted","Acknowledged"];
+const qualifiers = ["immediately","as soon as possible","soon","today"];
+const followups = ["clarify","expand","specify","describe further"];
+
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+function detect(text){
+  text = text.toLowerCase();
+  if(text.includes("hvac") || text.includes("air")) memory.topic="HVAC";
+  if(text.includes("plumb")) memory.topic="Plumbing";
+  if(text.includes("urgent") || text.includes("emergency")) memory.urgency++;
+  if(text.includes("$") || text.includes("price") || text.includes("budget")) memory.budget++;
+}
+
+function generateResponse(userText){
+  detect(userText);
+  let type = Math.floor(Math.random()*3);
+  let response="";
+  
+  if(type===0){
+    response = pick(tones) + ". I will " + pick(verbs) + " your " + pick(nouns) + 
+      (memory.topic ? " " + pick(connectors) + " " + memory.topic : "") + 
+      ". Can you " + pick(followups) + "?";
+  }
+  if(type===1){
+    response = "Processing input " + (memory.topic ? "about " + memory.topic : "") +
+      ". Priority is " + (memory.urgency ? pick(qualifiers) : "normal") +
+      ". Please " + pick(followups) + ".";
+  }
+  if(type===2){
+    response = "I am " + pick(verbs) + " your " + pick(nouns) + 
+      (memory.topic ? " related to " + memory.topic : "") +
+      ". Timeline: " + (memory.urgency ? pick(qualifiers) : "flexible") +
+      ". Additional details?";
+  }
+  memory.stage++;
+  return response;
+}
+
+function addMessage(text, sender){
+  const div = document.createElement("div");
+  div.className = "message " + sender;
+  div.innerText = text;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function sendMessage(){
+  const userText = inputEl.value.trim();
+  if(!userText) return;
+  addMessage(userText, "user");
+  inputEl.value="";
+  setTimeout(()=>addMessage(generateResponse(userText),"ai"),300);
+}
+
+sendBtn.addEventListener("click",sendMessage);
+inputEl.addEventListener("keypress",e=>{if(e.key==="Enter") sendMessage();});
+
+// Initial greeting
+addMessage("Hello! I am your AI receptionist. How can I assist you today?", "ai");
+</script>
+
+</body>
+</html>
+
