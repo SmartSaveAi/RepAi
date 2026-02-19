@@ -3,170 +3,196 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIHive Offline AI Chatbot</title>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
-
+<title>AI SMB Automation Dashboard</title>
 <style>
-  body { font-family: Arial, sans-serif; background:#f5f5f5; padding:2rem;}
-  .chatbox { border:1px solid #ccc; min-height:250px; padding:1rem; background:white; overflow-y:auto;}
-  .message { margin:0.5rem 0;}
-  .user { font-weight: bold; color:#4f46e5;}
-  .ai { font-weight: bold; color:#111;}
-  input { width:80%; padding:0.6rem; border-radius:0.4rem; border:1px solid #ccc; }
-  button { padding:0.6rem 1rem; background:#4f46e5; color:white; border:none; border-radius:0.4rem;}
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', sans-serif; }
+    body { background:#1e1e1e; color:#ddd; }
+    h2,h3 { color:#fff; }
+    button { cursor:pointer; transition:0.3s; }
+
+    /* Header */
+    header { background:#121212; color:#fff; padding:60px 20px; text-align:center; }
+    header h1 { font-size:2.8em; margin-bottom:15px; }
+    header p { font-size:1.2em; margin-bottom:25px; color:#bbb; }
+    .cta-btn { background:#ff7f50; color:#fff; padding:12px 28px; border:none; border-radius:6px; }
+    .cta-btn:hover { background:#ff5733; transform:scale(1.05); }
+
+    /* Sections */
+    section { padding:50px 20px; max-width:1200px; margin:0 auto; }
+    .kpi-cards, .tools { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px; margin-bottom:40px; }
+
+    /* Cards */
+    .kpi-card, .tool-card { background:#2c2c2c; padding:25px; border-radius:10px; text-align:center; opacity:0; transform:translateY(40px); transition:0.6s; cursor:grab; }
+    .kpi-card.visible, .tool-card.visible { opacity:1; transform:translateY(0); }
+    .kpi-card h3, .tool-card h3 { color:#ff7f50; margin-bottom:12px; }
+    .kpi-value { font-size:1.8em; color:#fff; margin-bottom:8px; }
+
+    /* AI Tools */
+    .ai-tool { background:#2c2c2c; padding:20px; border-radius:8px; text-align:center; }
+    textarea { width:90%; height:80px; padding:10px; border-radius:6px; border:none; margin-bottom:12px; font-size:1em; background:#1e1e1e; color:#fff; }
+    .ai-output { margin-top:15px; background:#1e1e1e; color:#fff; padding:15px; border-radius:6px; min-height:50px; font-weight:500; }
+
+    /* Charts */
+    .charts { display:flex; flex-wrap:wrap; justify-content:center; gap:30px; margin-bottom:40px; }
+    canvas { background:#2c2c2c; border-radius:10px; padding:15px; }
+
+    /* Table */
+    .analytics-table { width:100%; border-collapse:collapse; margin-top:20px; }
+    .analytics-table th, .analytics-table td { padding:10px; border:1px solid #444; text-align:center; color:#ddd; }
+    .expand-btn { background:#ff7f50; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-top:15px; }
+    .expand-btn:hover { background:#ff5733; }
+
+    /* Footer */
+    footer { text-align:center; padding:30px 20px; background:#121212; color:#bbb; margin-top:40px; font-size:0.9em; }
+
 </style>
 </head>
 <body>
 
-<h2>AIHive Offline AI Chat</h2>
-<div class="chatbox" id="chatbox"></div>
+<header>
+    <h1>AI SMB Automation Dashboard</h1>
+    <p>Automate marketing, sales, customer support, and content creation. Real-time dashboard for professional SMB management.</p>
+    <button class="cta-btn" onclick="scrollToSection('dashboard')">Go to Dashboard</button>
+</header>
 
-<form id="chat-form">
-  <input type="text" id="user-input" placeholder="Ask me anything..." required />
-  <button type="submit">Send</button>
-</form>
+<section id="dashboard">
+    <h2>Key Metrics</h2>
+    <div class="kpi-cards" id="kpiCards">
+        <div class="kpi-card" draggable="true">
+            <h3>Monthly Revenue</h3>
+            <div class="kpi-value" id="revenueValue">0</div>
+        </div>
+        <div class="kpi-card" draggable="true">
+            <h3>Efficiency Gain</h3>
+            <div class="kpi-value" id="efficiencyValue">0%</div>
+        </div>
+        <div class="kpi-card" draggable="true">
+            <h3>Active Clients</h3>
+            <div class="kpi-value" id="clientsValue">0</div>
+        </div>
+        <div class="kpi-card" draggable="true">
+            <h3>AI Content Generated</h3>
+            <div class="kpi-value" id="contentValue">0</div>
+        </div>
+    </div>
 
+    <h2>Analytics</h2>
+    <div class="charts">
+        <canvas id="revenueChart" width="400" height="300"></canvas>
+        <canvas id="efficiencyChart" width="400" height="300"></canvas>
+    </div>
+
+    <button class="expand-btn" onclick="toggleTable()">Toggle Revenue Table</button>
+    <table class="analytics-table" id="revenueTable" style="display:none;">
+        <thead>
+            <tr><th>Client Tier</th><th>Number of Clients</th><th>Revenue ($)</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Pro</td><td>30</td><td>12,000</td></tr>
+            <tr><td>Premium</td><td>10</td><td>7,000</td></tr>
+            <tr><td>Enterprise</td><td>2</td><td>3,000</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<section id="tools">
+    <h2>AI Tools</h2>
+    <div class="tools" id="toolCards">
+        <div class="tool-card" draggable="true">
+            <h3>Marketing AI</h3>
+            <div class="ai-tool">
+                <textarea id="marketingInput" placeholder="Enter campaign idea..."></textarea><br>
+                <button onclick="runMarketingAI()">Generate Marketing Plan</button>
+                <div class="ai-output" id="marketingOutput"></div>
+            </div>
+        </div>
+        <div class="tool-card" draggable="true">
+            <h3>Sales AI</h3>
+            <div class="ai-tool">
+                <textarea id="salesInput" placeholder="Enter lead info..."></textarea><br>
+                <button onclick="runSalesAI()">Generate Sales Strategy</button>
+                <div class="ai-output" id="salesOutput"></div>
+            </div>
+        </div>
+        <div class="tool-card" draggable="true">
+            <h3>Support AI</h3>
+            <div class="ai-tool">
+                <textarea id="supportInput" placeholder="Enter customer question..."></textarea><br>
+                <button onclick="runSupportAI()">Generate Support Response</button>
+                <div class="ai-output" id="supportOutput"></div>
+            </div>
+        </div>
+        <div class="tool-card" draggable="true">
+            <h3>Content AI</h3>
+            <div class="ai-tool">
+                <textarea id="contentInput" placeholder="Enter topic or product..."></textarea><br>
+                <button onclick="runContentAI()">Generate Content</button>
+                <div class="ai-output" id="contentOutput"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <p>&copy; 2026 AI SMB Automation Platform. Professional Dashboard. All Rights Reserved.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// ================================
-// 1. Training Data (very small set)
-// ================================
-const trainingData = [
-  { text: "tell me about marketing", label: "marketing" },
-  { text: "how do I post on social media", label: "marketing" },
-  { text: "what is pricing", label: "pricing" },
-  { text: "how much does it cost", label: "pricing" },
-  { text: "support chatbot", label: "support" },
-  { text: "help with ai support", label: "support" },
-  { text: "hello", label: "greeting" },
-  { text: "hi there", label: "greeting" },
-  { text: "tell me about content", label: "content" },
-  { text: "generate a blog", label: "content" }
-];
+// Scroll
+function scrollToSection(id){ document.getElementById(id).scrollIntoView({behavior:'smooth'}); }
 
-// ================================
-// 2. Possible Responses
-// ================================
-const responses = {
-  greeting: "Hi there! How can AIHive assist your business today?",
-  marketing: "AIHive can auto-generate social media posts, email campaigns, and ad copy.",
-  pricing: "Our plans start at $199/mo for Basic up to $699/mo for Premium.",
-  support: "AIHive's support bot can answer FAQs and schedule appointments.",
-  content: "AIHive can generate blogs, product copy, and video scripts!",
-  fallback: "I’m still learning — can you try asking another way?"
-};
+// Reveal KPI cards
+const cards=document.querySelectorAll('.kpi-card');
+window.addEventListener('load',()=>{
+    cards.forEach((c,i)=>setTimeout(()=>c.classList.add('visible'),i*200));
+    animateCounter('revenueValue',22000);
+    animateCounter('efficiencyValue',55,true);
+    animateCounter('clientsValue',42);
+    animateCounter('contentValue',120);
+});
 
-// ================================
-// 3. Simple Text Vectorizer
-// ================================
-function textToVector(str) {
-  const words = str.toLowerCase().split(/\W+/);
-  return words.reduce((vec, w) => {
-    vec[w] = (vec[w] || 0) + 1;
-    return vec;
-  }, {});
+// Animate counters
+function animateCounter(id,end,percent=false){
+    let start=0;
+    const obj=document.getElementById(id);
+    const step=Math.ceil(end/50);
+    const interval=setInterval(()=>{
+        start+=step;
+        if(start>=end){ start=end; clearInterval(interval); }
+        obj.innerText=percent?start+'%':start;
+    },30);
 }
 
-// ================================
-// 4. Build Vocabulary
-// ================================
-const vocab = {};
-trainingData.forEach(item => {
-  item.text.toLowerCase().split(/\W+/).forEach(word => {
-    if (!vocab[word]) vocab[word] = Object.keys(vocab).length;
-  });
-});
-
-// ================================
-// 5. Vectorize Training Inputs
-// ================================
-const xs = [];
-const labels = [];
-const labelToIndex = {};
-let nextLabelIndex = 0;
-
-trainingData.forEach(item => {
-  const vec = new Array(Object.keys(vocab).length).fill(0);
-  textToVector(item.text).forEach((count, word) => {
-    if (vocab[word] !== undefined) vec[vocab[word]] = count;
-  });
-
-  xs.push(vec);
-
-  if (!(item.label in labelToIndex)) {
-    labelToIndex[item.label] = nextLabelIndex++;
-  }
-  labels.push(labelToIndex[item.label]);
-});
-
-// ================================
-// 6. Convert to Tensors
-// ================================
-const xsTensor = tf.tensor2d(xs);
-const ysTensor = tf.oneHot(tf.tensor1d(labels, "int32"), nextLabelIndex);
-
-// ================================
-// 7. Build Model
-// ================================
-const model = tf.sequential();
-model.add(tf.layers.dense({ units: 16, activation: "relu", inputShape: [Object.keys(vocab).length] }));
-model.add(tf.layers.dense({ units: nextLabelIndex, activation: "softmax" }));
-
-model.compile({
-  optimizer: tf.train.adam(0.01),
-  loss: "categoricalCrossentropy",
-  metrics: ["accuracy"]
-});
-
-// ================================
-// 8. Train Model
-// ================================
-(async () => {
-  await model.fit(xsTensor, ysTensor, { epochs: 150 });
-  console.log("Model trained!");
-})();
-
-// ================================
-// 9. Predict Function
-// ================================
-async function predictIntent(text) {
-  const vec = new Array(Object.keys(vocab).length).fill(0);
-  const wordMap = textToVector(text);
-  Object.keys(wordMap).forEach(w => {
-    if (vocab[w] !== undefined) vec[vocab[w]] = wordMap[w];
-  });
-  const inputTensor = tf.tensor2d([vec]);
-  const prediction = model.predict(inputTensor);
-  const index = (await prediction.argMax(-1).data())[0];
-
-  return Object.keys(labelToIndex).find(k => labelToIndex[k] === index) || "fallback";
+// Toggle revenue table
+function toggleTable(){
+    const table=document.getElementById('revenueTable');
+    table.style.display=(table.style.display==='none')?'table':'none';
 }
 
-// ================================
-// 10. Chat UI Logic
-// ================================
-const chatbox = document.getElementById("chatbox");
-const form = document.getElementById("chat-form");
-const userInput = document.getElementById("user-input");
+// AI tool functions
+function runMarketingAI(){ const i=document.getElementById('marketingInput').value; document.getElementById('marketingOutput').innerText=i?`Marketing Plan: Promote "${i}" on social media/email.`:'Enter idea.'; }
+function runSalesAI(){ const i=document.getElementById('salesInput').value; document.getElementById('salesOutput').innerText=i?`Sales Strategy: Track leads for "${i}".`:'Enter info.'; }
+function runSupportAI(){ const i=document.getElementById('supportInput').value; document.getElementById('supportOutput').innerText=i?`Support Response: Answer regarding "${i}".`:'Enter question.'; }
+function runContentAI(){ const i=document.getElementById('contentInput').value; if(i){ document.getElementById('contentOutput').innerText=`Content: "${i}" generated.`; const val=parseInt(document.getElementById('contentValue').innerText); document.getElementById('contentValue').innerText=val+1; } else document.getElementById('contentOutput').innerText='Enter topic.'; }
 
-function append(msg, cls) {
-  const p = document.createElement("p");
-  p.classList.add("message");
-  p.innerHTML = `<span class="${cls}">${msg}</span>`;
-  chatbox.appendChild(p);
-  chatbox.scrollTop = chatbox.scrollHeight;
+// Charts
+const revenueCtx=document.getElementById('revenueChart').getContext('2d');
+new Chart(revenueCtx,{type:'bar',data:{labels:['Pro','Premium','Enterprise'],datasets:[{label:'Revenue',data:[12000,7000,3000],backgroundColor:['#ff7f50','#4b6cb7','#888']}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+const efficiencyCtx=document.getElementById('efficiencyChart').getContext('2d');
+new Chart(efficiencyCtx,{type:'line',data:{labels:['Week 1','Week 2','Week 3','Week 4'],datasets:[{label:'Efficiency Gain (%)',data:[10,25,40,55],backgroundColor:'rgba(255,127,80,0.2)',borderColor:'#ff7f50',borderWidth:3,fill:true,tension:0.3}]}});
+
+// Drag & Drop
+function enableDrag(containerId){
+    const container=document.getElementById(containerId);
+    let dragItem=null, dragIndex=null;
+    container.addEventListener('dragstart', e=>{ dragItem=e.target; dragIndex=[...container.children].indexOf(dragItem); });
+    container.addEventListener('dragover', e=>{ e.preventDefault(); const after=Array.from(container.children).find(child=>child!==dragItem && e.clientY<child.getBoundingClientRect().top+child.offsetHeight/2); if(after) container.insertBefore(dragItem,after); else container.appendChild(dragItem); });
 }
-
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const text = userInput.value;
-  append("You: " + text, "user");
-  const intent = await predictIntent(text);
-  append("AIHive: " + (responses[intent] || responses.fallback), "ai");
-  userInput.value = "";
-});
+enableDrag('kpiCards'); enableDrag('toolCards');
 </script>
-
 </body>
 </html>
+
 
 
