@@ -1,153 +1,172 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RepAi</title>
+<title>AIHive Offline AI Chatbot</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f1f5f9;
-}
-#ai-widget {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 360px;
-  max-height: 500px;
-  background: #111827;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-}
-#ai-header {
-  background: #2563eb;
-  color: white;
-  padding: 15px;
-  font-weight: bold;
-  text-align: center;
-}
-#ai-messages {
-  flex: 1;
-  padding: 15px;
-  overflow-y: auto;
-  color: white;
-}
-.message {
-  margin: 8px 0;
-  padding: 10px 14px;
-  border-radius: 14px;
-  max-width: 80%;
-}
-.message.user { background: #3b82f6; align-self: flex-end; }
-.message.ai { background: #1f2937; align-self: flex-start; }
-#ai-input {
-  display: flex;
-  border-top: 1px solid #333;
-}
-#ai-input input {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  outline: none;
-  border-radius: 0;
-}
-#ai-input button {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  cursor: pointer;
-}
+  body { font-family: Arial, sans-serif; background:#f5f5f5; padding:2rem;}
+  .chatbox { border:1px solid #ccc; min-height:250px; padding:1rem; background:white; overflow-y:auto;}
+  .message { margin:0.5rem 0;}
+  .user { font-weight: bold; color:#4f46e5;}
+  .ai { font-weight: bold; color:#111;}
+  input { width:80%; padding:0.6rem; border-radius:0.4rem; border:1px solid #ccc; }
+  button { padding:0.6rem 1rem; background:#4f46e5; color:white; border:none; border-radius:0.4rem;}
 </style>
 </head>
 <body>
 
-<div id="ai-widget">
-  <div id="ai-header">AI Receptionist</div>
-  <div id="ai-messages"></div>
-  <div id="ai-input">
-    <input type="text" id="user-input" placeholder="Ask me anything..." />
-    <button id="send-btn">Send</button>
-  </div>
-</div>
+<h2>AIHive Offline AI Chat</h2>
+<div class="chatbox" id="chatbox"></div>
+
+<form id="chat-form">
+  <input type="text" id="user-input" placeholder="Ask me anything..." required />
+  <button type="submit">Send</button>
+</form>
 
 <script>
-const messagesEl = document.getElementById("ai-messages");
-const inputEl = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
+// ================================
+// 1. Training Data (very small set)
+// ================================
+const trainingData = [
+  { text: "tell me about marketing", label: "marketing" },
+  { text: "how do I post on social media", label: "marketing" },
+  { text: "what is pricing", label: "pricing" },
+  { text: "how much does it cost", label: "pricing" },
+  { text: "support chatbot", label: "support" },
+  { text: "help with ai support", label: "support" },
+  { text: "hello", label: "greeting" },
+  { text: "hi there", label: "greeting" },
+  { text: "tell me about content", label: "content" },
+  { text: "generate a blog", label: "content" }
+];
 
-let memory = {topic:null, urgency:0, budget:0, stage:0};
+// ================================
+// 2. Possible Responses
+// ================================
+const responses = {
+  greeting: "Hi there! How can AIHive assist your business today?",
+  marketing: "AIHive can auto-generate social media posts, email campaigns, and ad copy.",
+  pricing: "Our plans start at $199/mo for Basic up to $699/mo for Premium.",
+  support: "AIHive's support bot can answer FAQs and schedule appointments.",
+  content: "AIHive can generate blogs, product copy, and video scripts!",
+  fallback: "I’m still learning — can you try asking another way?"
+};
 
-// Word banks for dynamic AI generation
-const verbs = ["process","evaluate","review","analyze","assess","consider"];
-const connectors = ["regarding","about","concerning","related to"];
-const nouns = ["request","issue","service","project","situation"];
-const tones = ["I see","Understood","Noted","Acknowledged"];
-const qualifiers = ["immediately","as soon as possible","soon","today"];
-const followups = ["clarify","expand","specify","describe further"];
-
-function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
-
-function detect(text){
-  text = text.toLowerCase();
-  if(text.includes("hvac") || text.includes("air")) memory.topic="HVAC";
-  if(text.includes("plumb")) memory.topic="Plumbing";
-  if(text.includes("urgent") || text.includes("emergency")) memory.urgency++;
-  if(text.includes("$") || text.includes("price") || text.includes("budget")) memory.budget++;
+// ================================
+// 3. Simple Text Vectorizer
+// ================================
+function textToVector(str) {
+  const words = str.toLowerCase().split(/\W+/);
+  return words.reduce((vec, w) => {
+    vec[w] = (vec[w] || 0) + 1;
+    return vec;
+  }, {});
 }
 
-function generateResponse(userText){
-  detect(userText);
-  let type = Math.floor(Math.random()*3);
-  let response="";
-  
-  if(type===0){
-    response = pick(tones) + ". I will " + pick(verbs) + " your " + pick(nouns) + 
-      (memory.topic ? " " + pick(connectors) + " " + memory.topic : "") + 
-      ". Can you " + pick(followups) + "?";
+// ================================
+// 4. Build Vocabulary
+// ================================
+const vocab = {};
+trainingData.forEach(item => {
+  item.text.toLowerCase().split(/\W+/).forEach(word => {
+    if (!vocab[word]) vocab[word] = Object.keys(vocab).length;
+  });
+});
+
+// ================================
+// 5. Vectorize Training Inputs
+// ================================
+const xs = [];
+const labels = [];
+const labelToIndex = {};
+let nextLabelIndex = 0;
+
+trainingData.forEach(item => {
+  const vec = new Array(Object.keys(vocab).length).fill(0);
+  textToVector(item.text).forEach((count, word) => {
+    if (vocab[word] !== undefined) vec[vocab[word]] = count;
+  });
+
+  xs.push(vec);
+
+  if (!(item.label in labelToIndex)) {
+    labelToIndex[item.label] = nextLabelIndex++;
   }
-  if(type===1){
-    response = "Processing input " + (memory.topic ? "about " + memory.topic : "") +
-      ". Priority is " + (memory.urgency ? pick(qualifiers) : "normal") +
-      ". Please " + pick(followups) + ".";
-  }
-  if(type===2){
-    response = "I am " + pick(verbs) + " your " + pick(nouns) + 
-      (memory.topic ? " related to " + memory.topic : "") +
-      ". Timeline: " + (memory.urgency ? pick(qualifiers) : "flexible") +
-      ". Additional details?";
-  }
-  memory.stage++;
-  return response;
+  labels.push(labelToIndex[item.label]);
+});
+
+// ================================
+// 6. Convert to Tensors
+// ================================
+const xsTensor = tf.tensor2d(xs);
+const ysTensor = tf.oneHot(tf.tensor1d(labels, "int32"), nextLabelIndex);
+
+// ================================
+// 7. Build Model
+// ================================
+const model = tf.sequential();
+model.add(tf.layers.dense({ units: 16, activation: "relu", inputShape: [Object.keys(vocab).length] }));
+model.add(tf.layers.dense({ units: nextLabelIndex, activation: "softmax" }));
+
+model.compile({
+  optimizer: tf.train.adam(0.01),
+  loss: "categoricalCrossentropy",
+  metrics: ["accuracy"]
+});
+
+// ================================
+// 8. Train Model
+// ================================
+(async () => {
+  await model.fit(xsTensor, ysTensor, { epochs: 150 });
+  console.log("Model trained!");
+})();
+
+// ================================
+// 9. Predict Function
+// ================================
+async function predictIntent(text) {
+  const vec = new Array(Object.keys(vocab).length).fill(0);
+  const wordMap = textToVector(text);
+  Object.keys(wordMap).forEach(w => {
+    if (vocab[w] !== undefined) vec[vocab[w]] = wordMap[w];
+  });
+  const inputTensor = tf.tensor2d([vec]);
+  const prediction = model.predict(inputTensor);
+  const index = (await prediction.argMax(-1).data())[0];
+
+  return Object.keys(labelToIndex).find(k => labelToIndex[k] === index) || "fallback";
 }
 
-function addMessage(text, sender){
-  const div = document.createElement("div");
-  div.className = "message " + sender;
-  div.innerText = text;
-  messagesEl.appendChild(div);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+// ================================
+// 10. Chat UI Logic
+// ================================
+const chatbox = document.getElementById("chatbox");
+const form = document.getElementById("chat-form");
+const userInput = document.getElementById("user-input");
+
+function append(msg, cls) {
+  const p = document.createElement("p");
+  p.classList.add("message");
+  p.innerHTML = `<span class="${cls}">${msg}</span>`;
+  chatbox.appendChild(p);
+  chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-function sendMessage(){
-  const userText = inputEl.value.trim();
-  if(!userText) return;
-  addMessage(userText, "user");
-  inputEl.value="";
-  setTimeout(()=>addMessage(generateResponse(userText),"ai"),300);
-}
-
-sendBtn.addEventListener("click",sendMessage);
-inputEl.addEventListener("keypress",e=>{if(e.key==="Enter") sendMessage();});
-
-// Initial greeting
-addMessage("Hello! I am your AI receptionist. How can I assist you today?", "ai");
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = userInput.value;
+  append("You: " + text, "user");
+  const intent = await predictIntent(text);
+  append("AIHive: " + (responses[intent] || responses.fallback), "ai");
+  userInput.value = "";
+});
 </script>
 
 </body>
 </html>
+
 
