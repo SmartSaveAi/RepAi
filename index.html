@@ -2,221 +2,350 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>StoryForge Pro</title>
+<title>StoryMint Studio</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 *{box-sizing:border-box}
 body{
-margin:0;
-font-family:Inter, sans-serif;
-background:#0f172a;
-color:white;
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    color:white;
 }
+
+/* ===== HEADER ===== */
 header{
-padding:20px 40px;
-background:#111827;
-font-weight:600;
-border-bottom:1px solid #1f2937;
+    padding:25px 50px;
+    font-size:22px;
+    font-weight:600;
+    background:rgba(0,0,0,.4);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,.1);
 }
+
+/* ===== LAYOUT ===== */
 .container{
-display:flex;
-height:100vh;
+    display:flex;
+    min-height:100vh;
 }
+
 .sidebar{
-width:320px;
-background:#111827;
-padding:25px;
-overflow-y:auto;
-border-right:1px solid #1f2937;
+    width:350px;
+    padding:30px;
+    background:#0f172a;
+    border-right:1px solid rgba(255,255,255,.05);
 }
-.preview{
-flex:1;
-padding:40px;
-overflow-y:auto;
+
+.sidebar h2{
+    margin-top:0;
+    font-weight:500;
 }
-input,textarea,select{
-width:100%;
-margin-bottom:12px;
-padding:10px;
-border:none;
-border-radius:6px;
-background:#1f2937;
-color:white;
+
+input, textarea, select{
+    width:100%;
+    margin-bottom:15px;
+    padding:12px;
+    border-radius:8px;
+    border:none;
+    background:#1e293b;
+    color:white;
 }
+
 button{
-width:100%;
-padding:12px;
-background:#6366f1;
-border:none;
-border-radius:6px;
-color:white;
-font-weight:600;
-cursor:pointer;
+    width:100%;
+    padding:14px;
+    border-radius:8px;
+    border:none;
+    background:#6366f1;
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    transition:.2s;
 }
-button:hover{background:#818cf8}
-.book-page{
-background:white;
-color:black;
-margin:40px auto;
-padding:60px;
-border-radius:6px;
-box-shadow:0 15px 40px rgba(0,0,0,.3);
-position:relative;
+
+button:hover{
+    background:#818cf8;
 }
-.speech{
-position:absolute;
-background:white;
-border:3px solid black;
-border-radius:20px;
-padding:10px 15px;
-font-size:14px;
+
+/* ===== PREVIEW ===== */
+.preview{
+    flex:1;
+    padding:50px;
+    overflow-y:auto;
+}
+
+/* ===== BOOK STYLING ===== */
+.cover{
+    width:420px;
+    height:630px;
+    margin:auto;
+    border-radius:16px;
+    overflow:hidden;
+    position:relative;
+    box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+
+.cover-title{
+    position:absolute;
+    top:20%;
+    width:100%;
+    text-align:center;
+    font-size:32px;
+    font-weight:800;
+    color:white;
+    text-shadow:2px 4px 10px rgba(0,0,0,.7);
+}
+
+.cover-author{
+    position:absolute;
+    bottom:40px;
+    width:100%;
+    text-align:center;
+    font-size:18px;
+    font-weight:500;
+    color:white;
+}
+
+.page{
+    background:white;
+    color:black;
+    width:650px;
+    margin:70px auto;
+    padding:70px;
+    border-radius:10px;
+    box-shadow:0 25px 60px rgba(0,0,0,.3);
+    line-height:1.8;
+    font-size:16px;
+    position:relative;
+}
+
+.page-number{
+    position:absolute;
+    bottom:20px;
+    right:40px;
+    font-size:12px;
+    color:#555;
+}
+
+canvas{
+    display:block;
+    margin-bottom:25px;
+    border-radius:12px;
 }
 </style>
 </head>
+
 <body>
 
-<header>StoryForge Pro — Pure Code Publishing Engine</header>
+<header>StoryMint Studio — Full Pure Code Illustrated Book Generator</header>
 
 <div class="container">
+
 <div class="sidebar">
+<h2>Create Full Book</h2>
 
-<h3>Book Settings</h3>
+<input id="title" placeholder="Book Title">
+<input id="author" placeholder="Author Name">
+<textarea id="concept" placeholder="Short Concept (e.g., A shy kid discovers invisibility powers...)"></textarea>
 
-<input id="title" placeholder="Title">
-<input id="author" placeholder="Author">
-<textarea id="concept" placeholder="Short Concept"></textarea>
-
-<select id="mode">
-<option value="novel">Novel Mode</option>
-<option value="children">Children's Illustrated</option>
-<option value="graphic">Graphic Novel</option>
+<select id="chapters">
+<option value="6">6 Chapters</option>
+<option value="8">8 Chapters</option>
+<option value="10">10 Chapters</option>
 </select>
 
-<select id="trim">
-<option value="500x780">5x8</option>
-<option value="600x900">6x9</option>
-<option value="850x1100">8.5x11</option>
-</select>
-
-<button onclick="generate()">Generate Book</button>
+<button onclick="generateBook()">Generate Full Book</button>
+<button onclick="window.print()">Download / Print</button>
 
 </div>
 
 <div class="preview" id="preview"></div>
+
 </div>
 
 <script>
 
-// ---------- SEEDED RANDOM ----------
+/* =========================
+   SEEDED RANDOM ENGINE
+========================= */
+
 function createSeed(str){
-let h=0;
-for(let i=0;i<str.length;i++)
-h=Math.imul(31,h)+str.charCodeAt(i)|0;
-return h;
+    let h=0;
+    for(let i=0;i<str.length;i++)
+        h=Math.imul(31,h)+str.charCodeAt(i)|0;
+    return h;
 }
 
 function RNG(seed){
-return function(){
-seed = (seed * 9301 + 49297) % 233280;
-return seed/233280;
-}
+    return function(){
+        seed = (seed * 1664525 + 1013904223) % 4294967296;
+        return seed / 4294967296;
+    }
 }
 
-// ---------- GENERATE ----------
-function generate(){
+/* =========================
+   STORY GENERATION
+========================= */
+
+function generateBook(){
 
 const preview=document.getElementById("preview");
 preview.innerHTML="";
 
-const title=document.getElementById("title").value||"Untitled";
+const title=document.getElementById("title").value||"Untitled Adventure";
 const author=document.getElementById("author").value||"Anonymous";
-const concept=document.getElementById("concept").value||"a strange machine";
-const mode=document.getElementById("mode").value;
-const trim=document.getElementById("trim").value.split("x");
+const concept=document.getElementById("concept").value||"a strange discovery";
+const totalChapters=parseInt(document.getElementById("chapters").value);
 
 const seed=createSeed(title+author+concept);
 const rand=RNG(seed);
 
-function random(arr){return arr[Math.floor(rand()*arr.length)]}
+function random(arr){ return arr[Math.floor(rand()*arr.length)] }
 
-let hero={name:random(["Leo","Milo","Eli","Theo"]),emotion:"nervous"};
-let villain={name:random(["Dr. Void","Zarnok","ShadowBot"])};
+const heroNames=["Leo","Milo","Ava","Theo","Luna","Kai"];
+const villainNames=["Dr. Vex","ShadowBot","Zarnok","Professor Gloom"];
+const places=["the city","an underground lab","a hidden forest","the school rooftop","a glowing cavern"];
+const emotions=["nervous","excited","confused","determined","afraid","hopeful"];
+const actions=["whispered","shouted","gasped","stared","ran","leaped"];
 
-// Generate 5 chapters
-for(let c=1;c<=5;c++){
+let hero={
+    name:random(heroNames),
+    emotion:random(emotions)
+};
 
-const page=document.createElement("div");
-page.className="book-page";
-page.style.width=trim[0]+"px";
-page.style.height=trim[1]+"px";
+let villain={
+    name:random(villainNames)
+};
 
-if(mode==="novel"){
+/* =========================
+   COVER ILLUSTRATION
+========================= */
 
-for(let i=0;i<5;i++){
-const p=document.createElement("p");
-p.innerText=`${hero.name} stepped forward as ${villain.name}'s plan involving ${concept} grew stronger. The tension rose in chapter ${c}.`;
-page.appendChild(p);
+const cover=document.createElement("div");
+cover.className="cover";
+
+const coverCanvas=document.createElement("canvas");
+coverCanvas.width=420;
+coverCanvas.height=630;
+drawIllustration(coverCanvas,rand,0,true);
+
+cover.appendChild(coverCanvas);
+
+const titleDiv=document.createElement("div");
+titleDiv.className="cover-title";
+titleDiv.innerText=title;
+cover.appendChild(titleDiv);
+
+const authorDiv=document.createElement("div");
+authorDiv.className="cover-author";
+authorDiv.innerText=author;
+cover.appendChild(authorDiv);
+
+preview.appendChild(cover);
+
+/* =========================
+   FULL BOOK CHAPTER LOOP
+========================= */
+
+for(let chapter=1;chapter<=totalChapters;chapter++){
+
+    const page=document.createElement("div");
+    page.className="page";
+
+    // Illustration per chapter
+    const canvas=document.createElement("canvas");
+    canvas.width=500;
+    canvas.height=260;
+    drawIllustration(canvas,rand,chapter,false);
+    page.appendChild(canvas);
+
+    // Long structured story text
+    for(let p=0;p<6;p++){
+        const paragraph=document.createElement("p");
+
+        const location=random(places);
+        const emotion=random(emotions);
+        const action=random(actions);
+
+        paragraph.innerText =
+        `${hero.name} felt ${emotion} as events unfolded in ${location}. `
+        + `Ever since ${concept}, nothing had been normal. `
+        + `Meanwhile, ${villain.name} prepared something far more dangerous than anyone expected. `
+        + `${hero.name} ${action}, trying to understand what was happening. `
+        + `The tension in chapter ${chapter} rose steadily, pushing the story toward something bigger. `
+        + `By the end of this moment, everything had changed once again.`;
+
+        page.appendChild(paragraph);
+    }
+
+    const number=document.createElement("div");
+    number.className="page-number";
+    number.innerText=chapter;
+    page.appendChild(number);
+
+    preview.appendChild(page);
 }
 
 }
 
-if(mode==="children"){
+/* =========================
+   CARTOON ILLUSTRATION ENGINE
+========================= */
 
-const canvas=document.createElement("canvas");
-canvas.width=400;
-canvas.height=250;
+function drawIllustration(canvas,rand,chapter,isCover){
+
 const ctx=canvas.getContext("2d");
 
-ctx.fillStyle=`hsl(${rand()*360},70%,60%)`;
-ctx.fillRect(0,0,400,250);
+const hue=(chapter*50)%360;
 
-// cartoon head
-ctx.fillStyle="yellow";
+ctx.fillStyle=`hsl(${hue},70%,60%)`;
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+// clouds / blobs
+for(let i=0;i<20;i++){
+    ctx.beginPath();
+    ctx.arc(Math.random()*canvas.width,
+            Math.random()*canvas.height,
+            30+Math.random()*60,
+            0,Math.PI*2);
+    ctx.fillStyle=`hsla(${hue+40},70%,80%,0.3)`;
+    ctx.fill();
+}
+
+// Hero cartoon head
+ctx.fillStyle="#ffd966";
 ctx.beginPath();
-ctx.arc(150,120,40,0,Math.PI*2);
+ctx.arc(canvas.width/3,canvas.height/2,50,0,Math.PI*2);
 ctx.fill();
 
-page.appendChild(canvas);
-
-const p=document.createElement("p");
-p.innerText=`${hero.name} learned that courage matters when facing ${villain.name}.`;
-page.appendChild(p);
-
-}
-
-if(mode==="graphic"){
-
-const canvas=document.createElement("canvas");
-canvas.width=450;
-canvas.height=400;
-const ctx=canvas.getContext("2d");
-
-ctx.fillStyle="#fff";
-ctx.fillRect(0,0,450,400);
-ctx.strokeRect(0,0,450,400);
-
 ctx.fillStyle="black";
-ctx.fillText(hero.name+"!",50,50);
+ctx.beginPath();
+ctx.arc(canvas.width/3-15,canvas.height/2-10,5,0,Math.PI*2);
+ctx.arc(canvas.width/3+15,canvas.height/2-10,5,0,Math.PI*2);
+ctx.fill();
 
-page.appendChild(canvas);
+// Villain circle
+ctx.fillStyle="#ff4d4d";
+ctx.beginPath();
+ctx.arc(canvas.width*0.7,canvas.height/2,45,0,Math.PI*2);
+ctx.fill();
 
-const bubble=document.createElement("div");
-bubble.className="speech";
-bubble.style.top="120px";
-bubble.style.left="100px";
-bubble.innerText="We stop this now!";
-page.appendChild(bubble);
-
-}
-
-preview.appendChild(page);
-}
+// Energy beam
+ctx.strokeStyle="lime";
+ctx.lineWidth=6;
+ctx.beginPath();
+ctx.moveTo(canvas.width/3+50,canvas.height/2);
+ctx.lineTo(canvas.width*0.7-45,canvas.height/2);
+ctx.stroke();
 
 }
 
 </script>
+
 </body>
 </html>
+
 
 
 
